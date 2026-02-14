@@ -35,21 +35,21 @@ Each HDF5 file follows the same logical hierarchy:
     │   ├── alpha_units
     │   ├── omega_units
     │
-    ├── alpha_0
+    ├── alpha0
     │   ├── (attrs: alpha)
-    │   ├── omega_0
+    │   ├── omega0
     │   │   ├── (attrs: omega)
     │   │   ├── init_0
     │   │   │   ├── theta   (dataset)
     │   │   │   └── p       (dataset)
     │   │   └── init_1
-    │   └── omega_1
+    │   └── omega1
     │
-    └── alpha_1
+    └── alpha1
 
 Hierarchy semantics:
-- alpha_i   : one value of the control parameter alpha
-- omega_j   : one value of the drive frequency omega
+- alphai   : one value of the control parameter alpha
+- omegaj   : one value of the drive frequency omega
 - init_k    : one initial condition
 - theta, p  : phase-space data
 
@@ -121,7 +121,7 @@ Important Notes
 """
 
 import os.path
-from numpy import pi
+import numpy as np
 import h5py
 
 def get_or_create_group(parent, name, attrs=None):
@@ -166,7 +166,7 @@ def create_or_overwrite_dataset(parent, name, data, attrs=None):
     return ds
 
 
-def setup_file(path, integrator, data_type, alphas, omegas):
+def setup_file(path, integrator, data_type, alphas, omegas, dt=0.05):
     if os.path.isfile(path):
         print(f"{path} already exists. Skipping...")
         return
@@ -175,17 +175,17 @@ def setup_file(path, integrator, data_type, alphas, omegas):
     with h5py.File(path, "w") as file:
         file.attrs["integrator"] = integrator
         file.attrs["data_type"] = data_type
-        file.attrs["dt"] = 0.05
+        file.attrs["dt"] = dt
         file.attrs["dt_units"] = "seconds"
-        file.attrs["alpha_units"] = "degrees"
+        file.attrs["alpha_units"] = "radians"
         file.attrs["omega_units"] = "rad/s"
-        for alpha in alphas:
-            group = get_or_create_group(file, f"alpha{alpha}", attrs={"alpha": alpha})
-            for omega in omegas:
-                grp = get_or_create_group(group, f"omega{omega}", attrs={"omega": omega, "T": 2*pi/omega})
+        for i,alpha in enumerate(alphas):
+            group = get_or_create_group(file, f"alpha{i}", attrs={"alpha": alpha})
+            for j,omega in enumerate(omegas):
+                grp = get_or_create_group(group, f"omega{j}", attrs={"omega": omega, "T": 2*np.pi/omega if omega != 0 else None})
 
 if __name__ == "__main__":
-    alphas = [i for i in range(1,16)]
+    alphas = [np.deg2rad(i) for i in range(1,16)]
     omegas = [i for i in range(1,11)]
 
     setup_file("Data/trajectories.h5", "velocity_verlet", "Full trajectories, non-dissipative", alphas, omegas)
