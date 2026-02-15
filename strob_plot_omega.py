@@ -7,6 +7,8 @@ plots_dir = "Plots/strob_plots_varying_omega/"
 
 with h5py.File("Data/poincare_trajectories.h5", "r") as file:
     for alpha_grp in file.values():
+        if ".00" not in alpha_grp.name:
+            continue
         alpha = np.rad2deg(alpha_grp.attrs["alpha"])
         omega_array = list()
         theta_array = list()
