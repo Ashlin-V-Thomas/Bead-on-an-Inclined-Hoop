@@ -3,35 +3,44 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
-plots_dir = "Plots/strob_plots_varying_omega/"
+plots_dir = "Plots/strob_plots_omega/gamma_0.5/theta0_30/"
 
-with h5py.File("Data/poincare_trajectories.h5", "r") as file:
-    for alpha_grp in file.values():
-        if ".00" not in alpha_grp.name:
-            continue
-        alpha = np.rad2deg(alpha_grp.attrs["alpha"])
+alphas_deg = range(0, 90, 1)
+#alphas_deg = [50]
+
+with h5py.File("Data/dissip_trajectories.h5", "r") as file:
+    for alpha in alphas_deg:
+        alpha_grp = file[f"alpha{alpha:05.2f}"]
         omega_array = list()
         theta_array = list()
-        for omega_grp in alpha_grp.values():
+        for omega_val in np.arange(1,6,0.02): 
+            omega_grp = alpha_grp[f"omega{omega_val:06.3f}"]
             omega = omega_grp.attrs["omega"]
-            for init_grp in omega_grp.values():
-                theta = init_grp["theta"][-100:]
-                theta = (np.array(theta) + np.pi) % (2*np.pi) - np.pi  #  Plotting theta in the range -pi to pi
-                omega = [omega]*np.size(theta)
+            trjy_grp = omega_grp["uniform30.0_00.0_0.5"]
+            theta0 = trjy_grp.attrs["theta0"]
+            thetadot0 = trjy_grp.attrs["thetadot0"]
+            samples = trjy_grp.attrs["samples_per_period"]
+            theta = trjy_grp["theta"][::samples]
+            theta = (np.array(theta) + np.pi) % (2*np.pi) - np.pi  #  Plotting theta in the range -pi to pi
 
-
-                theta_array.extend(theta)
-                omega_array.extend(omega)
+            omega = [omega]*np.size(theta)
+            theta_array.extend(theta)
+            omega_array.extend(omega)
 
         plt.figure()
         plt.scatter(omega_array, theta_array, s=0.1, color="black")
         plt.xlabel(r"$\omega\,(rad/s)$")
         plt.ylabel("Stroboscopic sampling of " + r"$\theta(t=nT)$")
+        plt.ylim(-np.pi, np.pi)
         plt.title("Stroboscopic "
                   r"$\theta$" " vs. " r"$\omega$"
-                  "\n" rf"$\alpha={alpha:05.2f}^\circ$"
+                  #"\n" rf"$\alpha={alpha:05.2f}^\circ,\,gamma={init_grp.attrs['gamma']}$"
+                  "\n" rf"$\alpha={alpha:05.2f}^\circ\quad \gamma=0.5$"
+                  "\n" rf"$\theta_0={np.rad2deg(theta0):.2f}^\circ,\, \dot{theta}_0={thetadot0}$"
                   )
 
-        plt.savefig(f"{plots_dir}{alpha:04.1f}.jpg")
-        print(f"{plots_dir}{alpha:04.1f}.jpg")
+        file_name = f"{plots_dir}{alpha:05.2f}.jpg"
+        plt.savefig(file_name, bbox_inches="tight", pad_inches=0.2)
+        print(file_name)
+        #plt.show()
         plt.close()
